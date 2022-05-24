@@ -30,13 +30,24 @@ class EventInsert(Event):
         super().dequeue(sim)
         prob = min(random.random(), 1 - sys.float_info.epsilon)  # Generate U[0,1)
         if prob < prob_list[sim.queue_count]:
-            # Message gets inseted
+            # Message gets inserted
             sim.queue_count += 1
             finish_process_time = max(self.time, sim.last_process_time)
             process_event = generate_message(sim.mu_read, EventSaveMessage)
+
+            # Calc service time
+            sim.total_service_time += process_event.time
+
             process_event.time += finish_process_time
-            sim.last_process_time = self.time
+            sim.last_process_time = process_event.time
             sim.insert_sorted(process_event)
+
+            # Calc wait time
+            sim.total_wait_time += (finish_process_time - self.time)
+
+            # Calc receive rate
+            sim.total_insert_time += self.time - sim.last_insert_time
+            sim.last_insert_time = self.time
         else:
             sim.n_fault_messages += 1
 
@@ -79,6 +90,10 @@ class Simulation:
         self.last_event_time = 0
         self.n_read_messages = 0
         self.n_fault_messages = 0
+        self.total_service_time = 0
+        self.total_wait_time = 0
+        self.total_insert_time = 0
+        self.last_insert_time = 0
 
     def run(self, T):
         self.reset_sim()
@@ -98,8 +113,13 @@ class Simulation:
                 self.insert_sorted(next_message)
             elif isinstance(event, EventSaveMessage):
                 t_prime = event.time
-        z_i = [self.time_counts[i]/t_prime for i in range(len(self.time_counts))]
-        return tuple([self.n_read_messages, self.n_fault_messages, t_prime] + self.time_counts.tolist()+z_i)
+        z_i = [self.time_counts[i] / t_prime for i in range(len(self.time_counts))]
+        T_w = self.total_wait_time / self.n_read_messages
+        T_s = self.total_service_time / self.n_read_messages
+        lambda_a = self.n_read_messages / self.total_insert_time
+        return tuple(
+            [self.n_read_messages, self.n_fault_messages, t_prime] + self.time_counts.tolist() + z_i + [T_w, T_s,
+                                                                                                        lambda_a])
 
 
 if __name__ == "__main__":
