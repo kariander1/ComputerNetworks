@@ -1,3 +1,5 @@
+#!/usr/bin/python3
+
 import math
 import random
 import numpy as np
@@ -50,10 +52,10 @@ class EventIncomingMessage(Event):
             # Add the process time to the start service to get
             # When the event of service is finished
             service_event.time += start_service_time
-            
+
             # Update sim's internals
             sim.latest_service_time = service_event.time
-            
+
             # Insert service event sorted into queue
             sim.insert_sorted(service_event)
 
@@ -148,7 +150,7 @@ class Simulation:
         T_w = self.total_wait_time / self.n_read_messages
         T_s = self.total_service_time / self.n_read_messages
         lambda_a = self.n_read_messages / self.total_insert_time
-        
+
         # Encapsulate results
         return tuple(
             [self.n_read_messages, self.n_fault_messages, t_prime] + self.time_counts.tolist() + z_i + [T_w, T_s,
